@@ -1,0 +1,921 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Planwise — your plan of action</title>
+<meta name="description" content="Add your deadlines, see them on a calendar, and get an automatic priority order. Everything stays in your browser.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🧭%3C/text%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f6f5f1; --card:#ffffff; --ink:#1f2430; --muted:#6b7280; --line:#e7e4dc;
+  --accent:#4f46e5; --accent-ink:#ffffff; --accent-soft:#eef0ff;
+  --red:#dc2626; --red-s:#fee2e2;
+  --orange:#ea7a0b; --orange-s:#ffedd5;
+  --yellow:#ca9a04; --yellow-s:#fef3c7;
+  --green:#16a34a; --green-s:#dcfce7;
+  --gray:#94a3b8; --gray-s:#eef0f3;
+  --shadow:0 1px 2px rgba(20,20,40,.05),0 6px 20px rgba(20,20,40,.05);
+  --radius:14px;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#13151b; --card:#1c1f28; --ink:#eceff4; --muted:#9aa3b2; --line:#2b2f3b;
+    --accent:#8b8cf8; --accent-ink:#12131a; --accent-soft:#272a4a;
+    --red:#f87171; --red-s:#3d1d20;
+    --orange:#fb923c; --orange-s:#3b2511;
+    --yellow:#facc15; --yellow-s:#37300f;
+    --green:#4ade80; --green-s:#133021;
+    --gray:#64748b; --gray-s:#252936;
+    --shadow:none;
+  }
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+h1,h2,h3{margin:0;line-height:1.25}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+
+.lv4{--lv:var(--red);--lvs:var(--red-s)}
+.lv3{--lv:var(--orange);--lvs:var(--orange-s)}
+.lv2{--lv:var(--yellow);--lvs:var(--yellow-s)}
+.lv1{--lv:var(--green);--lvs:var(--green-s)}
+.lv0{--lv:var(--gray);--lvs:var(--gray-s)}
+
+/* header */
+.top{max-width:1180px;margin:0 auto;padding:22px 20px 8px;display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.brand{display:flex;gap:12px;align-items:center}
+.logo{font-size:30px}
+.brand h1{font-size:22px;letter-spacing:-.01em}
+.brand p{margin:0;color:var(--muted);font-size:14px}
+.seg{display:inline-flex;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:3px;box-shadow:var(--shadow)}
+.seg button{border:0;background:transparent;padding:7px 14px;border-radius:999px;font-size:14px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:600}
+
+.layout{max-width:1180px;margin:0 auto;padding:12px 20px 40px;display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start}
+@media (max-width:900px){.layout{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+.card h2{font-size:16px;margin-bottom:4px}
+aside .card+.card{margin-top:14px}
+
+/* subjects */
+#subjectList{list-style:none;margin:12px 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.subj{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--line);border-radius:10px}
+.sdot{display:inline-block;width:10px;height:10px;border-radius:50%;flex:none}
+.sname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.count{font-size:12px;color:var(--muted);background:var(--gray-s);border-radius:999px;padding:1px 8px}
+.icon{border:0;background:transparent;color:var(--muted);width:26px;height:26px;border-radius:6px;font-size:15px;line-height:1}
+.icon:hover{background:var(--gray-s);color:var(--ink)}
+.addrow{display:flex;gap:8px}
+input[type=text],input[type=date],input[type=time],input[type=number],select,textarea{
+  width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.btn{border:1.5px solid var(--line);background:var(--card);border-radius:10px;padding:9px 14px;font-weight:600}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--red)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.ghost{border:1px solid var(--line);background:transparent;border-radius:8px;padding:4px 10px;font-size:13px}
+.ghost:hover{border-color:var(--accent);color:var(--accent)}
+details.how summary{cursor:pointer;font-weight:600}
+details.how ul{padding-left:18px;margin:10px 0 0;color:var(--muted);font-size:14px}
+details.how li{margin:5px 0}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+@media (max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.stat b{display:block;font-size:22px;line-height:1.1}
+.stat span{font-size:12.5px;color:var(--muted)}
+.stat.alert b{color:var(--red)}
+.stat.warn b{color:var(--orange)}
+
+.welcome{background:var(--accent-soft);border:1px solid transparent;border-radius:var(--radius);padding:16px 18px;margin-bottom:14px}
+.welcome h2{font-size:17px;margin-bottom:4px}
+.welcome p{margin:4px 0 12px;color:var(--muted)}
+
+.toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px}
+.tabs{display:inline-flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px}
+.tabs button{border:0;background:transparent;padding:8px 16px;border-radius:9px;color:var(--muted);font-weight:600}
+.tabs button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent)}
+
+/* calendar */
+.calhead{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.calhead h2{font-size:18px;flex:1;min-width:140px}
+.navbtn{border:1.5px solid var(--line);background:var(--card);border-radius:9px;width:34px;height:34px;font-size:16px}
+.navbtn:hover{border-color:var(--accent)}
+.legend{display:flex;gap:6px 12px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin:0 0 10px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:10px;height:10px;border-radius:3px;background:var(--lv);display:inline-block}
+.undated{border:1.5px dashed var(--orange);background:var(--orange-s);border-radius:12px;padding:10px 12px;margin-bottom:12px}
+.undated h3{font-size:14px;margin-bottom:2px}
+.undated p{margin:0 0 8px;font-size:13px;color:var(--muted)}
+.undated .chips{display:flex;flex-wrap:wrap;gap:6px}
+.dow,.grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.dow div{font-size:12px;color:var(--muted);text-align:center;padding:4px 0;font-weight:600}
+.grid{gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.day{background:var(--card);border:0;text-align:left;padding:6px;min-height:104px;display:flex;flex-direction:column;gap:4px;min-width:0;border-radius:0}
+.day:hover{background:var(--accent-soft)}
+.day.other{background:var(--bg);opacity:.75}
+.day .num{font-size:12.5px;font-weight:600;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%}
+.day.today .num{background:var(--accent);color:var(--accent-ink)}
+.day.sel{box-shadow:inset 0 0 0 2px var(--accent)}
+.chips{display:flex;flex-direction:column;gap:3px;min-width:0}
+.chip{display:flex;align-items:center;gap:5px;min-width:0;font-size:11.5px;line-height:1.3;padding:2px 6px;border-radius:6px;border:0;border-left:3px solid var(--lv);background:var(--lvs);color:var(--ink);text-align:left}
+.chip .txt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip .wt{font-size:10px;font-weight:700;opacity:.85}
+.chip.range{outline:1px dashed var(--lv);outline-offset:-1px}
+.chip.done{opacity:.5;text-decoration:line-through}
+.chip.big{font-size:13px;padding:5px 10px;border-radius:8px}
+.more{font-size:11px;color:var(--muted);padding-left:4px}
+@media (max-width:640px){
+  .day{min-height:58px;padding:4px}
+  .grid .chips{flex-direction:row;flex-wrap:wrap;gap:3px}
+  .grid .chip{width:9px;height:9px;padding:0;border:0;border-radius:50%;background:var(--lv);outline:0}
+  .grid .chip .txt,.grid .chip .wt,.grid .chip .sdot{display:none}
+  .grid .more{display:none}
+}
+
+.detail{margin-top:14px}
+.detail h3{font-size:15px;margin-bottom:8px;display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.rows{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.drow,.prow{display:flex;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-left:5px solid var(--lv);border-radius:12px;background:var(--card)}
+.drow.done,.prow.done{opacity:.55}
+.drow.done .ptitle,.prow.done .ptitle{text-decoration:line-through}
+.dmain,.pmain{flex:1;min-width:0}
+.ptitle{font-weight:600;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pmeta{display:flex;gap:6px 8px;flex-wrap:wrap;align-items:center;margin-top:4px;font-size:12.5px;color:var(--muted)}
+.tag{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:999px;padding:1px 9px}
+.badge{border-radius:999px;padding:1px 9px;font-size:12px;font-weight:600;background:var(--lvs);color:var(--ink)}
+.badge.wt{background:var(--accent-soft);color:var(--accent)}
+.badge.band{font-weight:700}
+.badge.hot{background:var(--red-s);color:var(--red)}
+.badge.next{background:var(--yellow-s);color:var(--yellow)}
+.badge.later{background:var(--green-s);color:var(--green)}
+.when.warn{color:var(--orange);font-weight:600}
+.chk{width:20px;height:20px;accent-color:var(--accent);flex:none}
+
+/* priority */
+.phead{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px}
+.phead p{margin:2px 0 0;font-size:14px;color:var(--muted);max-width:560px}
+.custom{display:inline-block;margin-left:8px;font-size:12px;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:2px 10px;font-weight:600;vertical-align:middle}
+.prow{cursor:default}
+.prow.over{box-shadow:0 -3px 0 0 var(--accent)}
+.prow.dragging{opacity:.4}
+.handle{color:var(--muted);cursor:grab;user-select:none;font-size:18px;letter-spacing:-3px}
+.rank{width:30px;height:30px;border-radius:50%;background:var(--gray-s);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex:none}
+.pbtns{display:flex;gap:4px}
+.pbtns button{border:1px solid var(--line);background:transparent;border-radius:8px;width:32px;height:32px}
+.pbtns button:hover{border-color:var(--accent);color:var(--accent)}
+.pbtns button:disabled{opacity:.3;cursor:default}
+@media (max-width:560px){.handle{display:none}.prow{gap:8px;padding:10px}}
+.empty{text-align:center;padding:26px 12px;color:var(--muted)}
+.completed{margin-top:16px}
+.completed summary{cursor:pointer;color:var(--muted);font-weight:600;margin-bottom:8px}
+
+/* dialog */
+dialog{border:1px solid var(--line);border-radius:18px;padding:0;background:var(--card);color:var(--ink);width:min(540px,calc(100vw - 24px));max-height:calc(100vh - 24px);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(10,12,20,.55)}
+#form{padding:22px;display:flex;flex-direction:column;gap:14px}
+#form h2{font-size:19px}
+label.f,fieldset.f{display:flex;flex-direction:column;gap:6px;border:0;margin:0;padding:0;min-width:0}
+.f>span,.f>legend{font-weight:600;font-size:14px;padding:0}
+.opt{font-weight:400;color:var(--muted)}
+.hint{margin:0;font-size:13px;color:var(--muted)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.segf{display:flex;gap:6px;flex-wrap:wrap}
+.segf label,.pill{position:relative}
+.segf input,.pill input{position:absolute;opacity:0;pointer-events:none}
+.segf span{display:inline-block;padding:7px 13px;border:1.5px solid var(--line);border-radius:999px;cursor:pointer;font-size:14px}
+.segf input:checked+span{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+.segf input:focus-visible+span,.pill input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.pills{display:flex;gap:8px;flex-wrap:wrap}
+.pill span{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border:1.5px solid var(--line);border-radius:999px;cursor:pointer;font-size:13.5px}
+.pill span::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--lv)}
+.pill input:checked+span{border-color:var(--lv);background:var(--lvs);font-weight:600}
+.actions{display:flex;gap:8px;align-items:center;margin-top:4px}
+.actions .sp{flex:1}
+.err{color:var(--red);font-size:13.5px;min-height:1em;margin:0}
+
+footer{max-width:1180px;margin:0 auto;padding:0 20px 36px;color:var(--muted);font-size:13px;display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center}
+footer button{border:0;background:none;color:var(--accent);padding:0;text-decoration:underline;font-size:13px}
+.notice{max-width:1180px;margin:8px auto 0;padding:10px 20px;background:var(--orange-s);color:var(--ink);font-size:14px}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <span class="logo" aria-hidden="true">🧭</span>
+    <div>
+      <h1>Planwise</h1>
+      <p>Drop in your deadlines. Get a plan of action.</p>
+    </div>
+  </div>
+  <div class="seg" role="group" aria-label="I am a">
+    <button type="button" data-mode="student" aria-pressed="true">🎓 Student</button>
+    <button type="button" data-mode="work" aria-pressed="false">💼 Professional</button>
+  </div>
+</header>
+
+<div class="notice" id="storageWarn" hidden>Your browser is blocking local storage, so changes will be lost when you close this tab. Try a normal (non-private) window.</div>
+
+<main class="layout">
+  <aside>
+    <section class="card">
+      <h2>1 · Your <span data-l="units">Subjects</span></h2>
+      <p class="muted small" data-l="unitHint">Add each subject or course you're taking.</p>
+      <ul id="subjectList"></ul>
+      <form id="subjForm" class="addrow">
+        <input type="text" id="subjInput" maxlength="40" data-ph="unitPh" placeholder="e.g. Mathematics" aria-label="New name" autocomplete="off">
+        <button class="btn primary" type="submit">Add</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <details class="how">
+        <summary>How is priority decided?</summary>
+        <ul>
+          <li><b>Urgency</b> counts most: the closer the date, the higher it climbs. Overdue items jump to the top.</li>
+          <li><b>Importance</b> counts nearly as much. A weight in % lifts it further, and a big one (about 40%+) counts as maxed out.</li>
+          <li><b>Date ranges</b> are planned for as if it could land early in the window.</li>
+          <li><b>No date?</b> It gets a cautious middle-of-the-road urgency and a warning until you pin a date.</li>
+          <li>Drag or use the arrows to reorder however you like. <b>Reset</b> brings the smart order back.</li>
+        </ul>
+      </details>
+    </section>
+  </aside>
+
+  <section>
+    <div class="stats" id="stats"></div>
+    <div class="welcome" id="welcome" hidden>
+      <h2>Welcome 👋 Let's get your plan sorted.</h2>
+      <p>Add your <span data-l="units" style="text-transform:lowercase">subjects</span> on the left, then hit <b>Add deadline</b>. Dates, weights and importance are all optional, so add what you know. Or just look around with some sample data first.</p>
+      <button class="btn" id="sampleBtn" type="button">Load sample data</button>
+    </div>
+
+    <div class="toolbar">
+      <div class="tabs" role="tablist">
+        <button role="tab" id="tabCal" aria-selected="true" data-view="calendar">📅 Calendar</button>
+        <button role="tab" id="tabPri" aria-selected="false" data-view="priority">🎯 Priorities</button>
+      </div>
+      <button class="btn primary" id="addBtn" type="button">＋ Add deadline</button>
+    </div>
+
+    <!-- CALENDAR -->
+    <div id="calView" class="card">
+      <div class="calhead">
+        <h2 id="monthTitle"></h2>
+        <button class="navbtn" id="prevM" aria-label="Previous month">‹</button>
+        <button class="btn" id="todayM" type="button" style="padding:6px 12px">Today</button>
+        <button class="navbtn" id="nextM" aria-label="Next month">›</button>
+      </div>
+      <p class="legend">
+        <span class="lv4"><i></i>Very important</span>
+        <span class="lv3"><i></i>Important</span>
+        <span class="lv2"><i></i>Moderate</span>
+        <span class="lv1"><i></i>Not too important</span>
+        <span class="lv0"><i></i>Not set</span>
+        <span>· dashed outline = date range · % = weight</span>
+      </p>
+      <div class="undated" id="undated" hidden></div>
+      <div class="dow" id="dow"></div>
+      <div class="grid" id="grid"></div>
+      <div class="detail" id="detail"></div>
+    </div>
+
+    <!-- PRIORITY -->
+    <div id="priView" class="card" hidden>
+      <div class="phead">
+        <div>
+          <h2 style="font-size:18px">Your plan of action <span class="custom" id="customBadge" hidden>Custom order</span></h2>
+          <p>Top = do first. Ranked by how soon it's due and how much it matters. Reorder it however you like.</p>
+        </div>
+        <button class="btn" id="resetOrder" type="button">↺ Reset to smart order</button>
+      </div>
+      <ol class="rows" id="priList" style="padding:0"></ol>
+      <details class="completed" id="completedBox" hidden>
+        <summary id="completedSum"></summary>
+        <ul class="rows" id="doneList"></ul>
+      </details>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span>🔒 Everything is stored only in this browser. No account, nothing uploaded.</span>
+  <button type="button" id="exportBtn">Export backup</button>
+  <button type="button" id="importBtn">Import backup</button>
+  <button type="button" id="clearBtn">Clear all data</button>
+  <input type="file" id="importFile" accept="application/json,.json" hidden>
+</footer>
+
+<dialog id="dlg">
+  <form id="form" novalidate>
+    <h2 id="dlgTitle">Add a deadline</h2>
+
+    <label class="f"><span>What's due?</span>
+      <input type="text" name="title" maxlength="120" data-ph="titlePh" placeholder="e.g. Assignment 2" autocomplete="off">
+    </label>
+
+    <label class="f"><span data-l="Unit">Subject</span>
+      <select name="subject"></select>
+    </label>
+
+    <fieldset class="f"><legend>When is it due?</legend>
+      <div class="segf">
+        <label><input type="radio" name="when" value="single"><span>One date</span></label>
+        <label><input type="radio" name="when" value="range"><span>Date range</span></label>
+        <label><input type="radio" name="when" value="none"><span>No date yet</span></label>
+      </div>
+      <div class="two" id="whenSingle">
+        <label class="f"><span>Date</span><input type="date" name="date"></label>
+        <label class="f"><span>Time <span class="opt">(optional)</span></span><input type="time" name="time"></label>
+      </div>
+      <div class="two" id="whenRange" hidden>
+        <label class="f"><span>From</span><input type="date" name="start"></label>
+        <label class="f"><span>To</span><input type="date" name="end"></label>
+      </div>
+      <p class="hint" id="whenHint"></p>
+    </fieldset>
+
+    <fieldset class="f"><legend>How important is it? <span class="opt">(optional)</span></legend>
+      <div class="pills">
+        <label class="pill lv4"><input type="radio" name="imp" value="4"><span>Very important</span></label>
+        <label class="pill lv3"><input type="radio" name="imp" value="3"><span>Important</span></label>
+        <label class="pill lv2"><input type="radio" name="imp" value="2"><span>Moderate</span></label>
+        <label class="pill lv1"><input type="radio" name="imp" value="1"><span>Not too important</span></label>
+        <label class="pill lv0"><input type="radio" name="imp" value="0"><span>Not set</span></label>
+      </div>
+    </fieldset>
+
+    <label class="f"><span><span data-l="weightLabel">Weight (% of final grade)</span> <span class="opt">(optional)</span></span>
+      <input type="number" name="weight" min="0" max="100" step="any" inputmode="decimal" placeholder="e.g. 30">
+      <span class="hint" data-l="weightHint" style="font-weight:400">e.g. 30 for an exam worth 30%</span>
+    </label>
+
+    <label class="f"><span>Notes <span class="opt">(optional)</span></span>
+      <textarea name="notes" rows="2" maxlength="400"></textarea>
+    </label>
+
+    <p class="err" id="formErr" role="alert"></p>
+    <div class="actions">
+      <button class="btn danger" type="button" id="delBtn" hidden>Delete</button>
+      <span class="sp"></span>
+      <button class="btn" type="button" id="cancelBtn">Cancel</button>
+      <button class="btn primary" type="submit">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<noscript><div class="notice">Planwise needs JavaScript to run.</div></noscript>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- helpers ---------- */
+const KEY = 'planwise.v1';
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+const pd = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const today0 = () => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); };
+const dayDiff = (a, b) => Math.round((b - a) / 86400000);
+const fmt = (s, o) => pd(s).toLocaleDateString(undefined, o || { weekday: 'short', day: 'numeric', month: 'short' });
+const relDay = n => n === 0 ? 'today' : n === 1 ? 'tomorrow' : n === -1 ? 'yesterday' : n > 0 ? `in ${n} days` : `${-n} days ago`;
+
+const LEVELS = {
+  4: { label: 'Very important', w: 1 },
+  3: { label: 'Important',      w: .75 },
+  2: { label: 'Moderate',       w: .5 },
+  1: { label: 'Not too important', w: .25 },
+  0: { label: 'No importance set', w: .4 }
+};
+const LBL = {
+  student: {
+    units: 'Subjects', Unit: 'Subject', noSubject: 'General (no subject)',
+    unitHint: "Add each subject or course you're taking.",
+    unitPh: 'e.g. Mathematics', titlePh: 'e.g. Assignment 2, Mid-sem exam',
+    weightLabel: 'Weight (% of final grade)', weightHint: 'e.g. 30 for an exam worth 30%'
+  },
+  work: {
+    units: 'Projects', Unit: 'Project', noSubject: 'General (no project)',
+    unitHint: 'Add each project, client or area of work you handle.',
+    unitPh: 'e.g. Website relaunch', titlePh: 'e.g. Send proposal to client',
+    weightLabel: 'Weight (% of project or goal)', weightHint: 'e.g. 25 if it makes up a quarter of the project'
+  }
+};
+const PALETTE = ['#4f46e5','#0ea5e9','#10b981','#f59e0b','#ec4899','#8b5cf6','#ef4444','#14b8a6','#84cc16','#f97316'];
+
+/* ---------- state ---------- */
+const DEFAULT = { mode: 'student', subjects: [], deadlines: [], manualOrder: null, view: 'calendar' };
+let storageOK = true;
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) {
+      const s = JSON.parse(raw);
+      return {
+        ...JSON.parse(JSON.stringify(DEFAULT)), ...s,
+        subjects: Array.isArray(s.subjects) ? s.subjects : [],
+        deadlines: Array.isArray(s.deadlines) ? s.deadlines : []
+      };
+    }
+  } catch (e) { storageOK = false; }
+  return JSON.parse(JSON.stringify(DEFAULT));
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); }
+  catch (e) { storageOK = false; $('#storageWarn').hidden = false; }
+}
+let state = load();
+let L = LBL[state.mode] || LBL.student;
+const now0 = today0();
+let cal = { y: now0.getFullYear(), m: now0.getMonth() };
+let sel = ymd(now0);
+let editingId = null;
+let lastSubject = null;
+
+const subjectOf = d => state.subjects.find(s => s.id === d.subjectId) || null;
+const span = d => {
+  if (d.dateMode === 'single' && d.date) return [d.date, d.date];
+  if (d.dateMode === 'range' && d.date && d.endDate) return [d.date, d.endDate];
+  return null;
+};
+
+/* ---------- ranking algorithm ---------- */
+// Estimated moment it will really be due (used for urgency).
+function dueMoment(d) {
+  const sp = span(d); if (!sp) return null;
+  const now = new Date();
+  if (d.dateMode === 'single') {
+    const dt = pd(sp[0]);
+    if (d.time) { const [h, m] = d.time.split(':').map(Number); dt.setHours(h, m, 0, 0); }
+    else dt.setHours(23, 59, 0, 0);
+    return dt;
+  }
+  const start = pd(sp[0]); const end = pd(sp[1]); end.setHours(23, 59, 0, 0);
+  if (now > end) return end;
+  const lo = now > start ? now : start;
+  return new Date(lo.getTime() + 0.3 * (end - lo)); // plan for the early end of a window
+}
+function urgency(d) {
+  const due = dueMoment(d);
+  if (!due) return 0.3;                       // unknown date: cautious middle-low urgency
+  const days = (due - new Date()) / 86400000;
+  if (days < 0) return 1.15;                  // overdue
+  return Math.exp(-days / 10);                // 0d→1, 7d→.5, 14d→.25, 30d→.05 (far-off dates fade out)
+}
+function weightFactor(d) {
+  const lv = LEVELS[d.importance || 0].w;
+  if (d.weight != null && !isNaN(d.weight)) {
+    const nw = 0.2 + 0.8 * Math.min(1, Math.max(0, d.weight) / 40);
+    return d.importance ? Math.max(lv, nw) : nw;
+  }
+  return lv;
+}
+const score = d => 100 * (0.55 * urgency(d) + 0.45 * weightFactor(d));
+const band = s => s >= 60 ? ['Do first', 'hot'] : s >= 40 ? ['Up next', 'next'] : ['Later', 'later'];
+
+function sortAuto(list) {
+  return [...list].sort((a, b) => {
+    const sa = score(a), sb = score(b);
+    if (Math.abs(sa - sb) > 0.01) return sb - sa;
+    const da = dueMoment(a), db = dueMoment(b);
+    if (da && db && da - db) return da - db;
+    if (da && !db) return -1;
+    if (!da && db) return 1;
+    return a.title.localeCompare(b.title);
+  });
+}
+const pending = () => state.deadlines.filter(d => !d.done);
+function currentOrder() {
+  const pend = pending();
+  const auto = sortAuto(pend);
+  if (!state.manualOrder) return auto;
+  const byId = new Map(pend.map(x => [x.id, x]));
+  const base = state.manualOrder.filter(id => byId.has(id)).map(id => byId.get(id));
+  const inBase = new Set(base.map(x => x.id));
+  for (const f of auto.filter(x => !inBase.has(x.id))) {
+    const i = base.findIndex(b => score(b) < score(f));
+    if (i < 0) base.push(f); else base.splice(i, 0, f);
+  }
+  return base;
+}
+
+/* ---------- text helpers ---------- */
+function whenText(d) {
+  const sp = span(d);
+  if (!sp) return 'No date yet — ambiguous';
+  const t0 = today0();
+  if (d.dateMode === 'single') {
+    const n = dayDiff(t0, pd(sp[0]));
+    return `${fmt(sp[0])}${d.time ? ' · ' + d.time : ''} (${n < 0 && !d.done ? 'overdue · ' : ''}${relDay(n)})`;
+  }
+  const a = dayDiff(t0, pd(sp[0])), b = dayDiff(t0, pd(sp[1]));
+  const st = a > 0 ? `window opens ${relDay(a)}` : b >= 0 ? `window open now, closes ${relDay(b)}` : `window ended ${relDay(b)}`;
+  return `Sometime ${fmt(sp[0])} → ${fmt(sp[1])} (${st})`;
+}
+function metaHTML(d, skipWhen) {
+  const sub = subjectOf(d);
+  const imp = d.importance || 0;
+  return [
+    `<span class="tag"><i class="sdot" style="background:${sub ? sub.color : 'var(--muted)'}"></i>${esc(sub ? sub.name : L.noSubject)}</span>`,
+    `<span class="badge lv${imp}">${LEVELS[imp].label}</span>`,
+    d.weight != null ? `<span class="badge wt">${d.weight}% weight</span>` : '',
+    skipWhen ? '' : `<span class="when ${span(d) ? '' : 'warn'}">${span(d) ? '' : '⚠ '}${esc(whenText(d))}</span>`
+  ].join('');
+}
+function chipHTML(d, big) {
+  const sub = subjectOf(d);
+  const imp = d.importance || 0;
+  const rng = d.dateMode === 'range';
+  const tip = `${d.title} — ${LEVELS[imp].label}${d.weight != null ? ', ' + d.weight + '% weight' : ''} — ${whenText(d)}`;
+  const tag = big ? 'button' : 'span';
+  return `<${tag} class="chip lv${imp} ${d.done ? 'done' : ''} ${rng ? 'range' : ''} ${big ? 'big' : ''}" ${big ? `data-edit="${d.id}"` : ''} title="${esc(tip)}">` +
+    `<i class="sdot" style="background:${sub ? sub.color : 'var(--muted)'}"></i>` +
+    `<span class="txt">${rng ? '⟷ ' : ''}${d.time && !rng ? esc(d.time) + ' ' : ''}${esc(d.title)}</span>` +
+    (d.weight != null ? `<b class="wt">${d.weight}%</b>` : '') + `</${tag}>`;
+}
+
+/* ---------- rendering ---------- */
+function applyLabels() {
+  L = LBL[state.mode] || LBL.student;
+  $$('[data-l]').forEach(el => { if (L[el.dataset.l] != null) el.textContent = L[el.dataset.l]; });
+  $$('[data-ph]').forEach(el => { if (L[el.dataset.ph] != null) el.placeholder = L[el.dataset.ph]; });
+  $$('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === state.mode)));
+}
+
+function renderStats() {
+  const open = pending(), t0 = today0();
+  const week = open.filter(d => { const sp = span(d); return sp && dayDiff(t0, pd(sp[1])) >= 0 && dayDiff(t0, pd(sp[0])) <= 7; }).length;
+  const over = open.filter(d => { const sp = span(d); return sp && dayDiff(t0, pd(sp[1])) < 0; }).length;
+  const nodate = open.filter(d => !span(d)).length;
+  $('#stats').innerHTML =
+    `<div class="stat"><b>${open.length}</b><span>Open deadlines</span></div>` +
+    `<div class="stat"><b>${week}</b><span>Due in next 7 days</span></div>` +
+    `<div class="stat ${over ? 'alert' : ''}"><b>${over}</b><span>Overdue</span></div>` +
+    `<div class="stat ${nodate ? 'warn' : ''}"><b>${nodate}</b><span>Need a date</span></div>`;
+}
+
+function renderSubjects() {
+  const box = $('#subjectList');
+  if (!state.subjects.length) {
+    box.innerHTML = `<li class="muted small">Nothing yet. Add your first one below 👇</li>`;
+    return;
+  }
+  box.innerHTML = state.subjects.map(s => {
+    const n = state.deadlines.filter(d => d.subjectId === s.id && !d.done).length;
+    return `<li class="subj"><i class="sdot" style="background:${s.color}"></i><span class="sname">${esc(s.name)}</span>` +
+      `<span class="count" title="Open deadlines">${n}</span>` +
+      `<button class="icon" data-ren="${s.id}" aria-label="Rename ${esc(s.name)}" title="Rename">✎</button>` +
+      `<button class="icon" data-del="${s.id}" aria-label="Remove ${esc(s.name)}" title="Remove">×</button></li>`;
+  }).join('');
+}
+
+function renderCalendar() {
+  const { y, m } = cal;
+  $('#monthTitle').textContent = new Date(y, m, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  $('#dow').innerHTML = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(x => `<div>${x}</div>`).join('');
+
+  const byDay = new Map();
+  for (const d of state.deadlines) {
+    const sp = span(d); if (!sp) continue;
+    const c = pd(sp[0]), end = pd(sp[1]); let guard = 0;
+    while (c <= end && guard++ < 400) {
+      const k = ymd(c);
+      if (!byDay.has(k)) byDay.set(k, []);
+      byDay.get(k).push(d);
+      c.setDate(c.getDate() + 1);
+    }
+  }
+  const first = new Date(y, m, 1);
+  const gridStart = new Date(y, m, 1 - ((first.getDay() + 6) % 7));
+  const todayK = ymd(today0());
+  let html = '';
+  for (let i = 0; i < 42; i++) {
+    const c = new Date(gridStart); c.setDate(gridStart.getDate() + i);
+    const k = ymd(c);
+    const items = (byDay.get(k) || []).sort((a, b) =>
+      (a.done - b.done) || ((a.time || '99') < (b.time || '99') ? -1 : 1) || ((b.importance || 0) - (a.importance || 0)));
+    const shown = items.slice(0, 3);
+    html += `<button class="day ${c.getMonth() !== m ? 'other' : ''} ${k === todayK ? 'today' : ''} ${k === sel ? 'sel' : ''}" data-day="${k}" aria-label="${esc(fmt(k, { weekday: 'long', day: 'numeric', month: 'long' }))}, ${items.length} deadlines">` +
+      `<span class="num">${c.getDate()}</span><span class="chips">${shown.map(d => chipHTML(d, false)).join('')}</span>` +
+      (items.length > 3 ? `<span class="more">+${items.length - 3} more</span>` : '') + `</button>`;
+  }
+  $('#grid').innerHTML = html;
+
+  // undated strip
+  const und = pending().filter(d => !span(d));
+  const box = $('#undated');
+  box.hidden = !und.length;
+  if (und.length) {
+    box.innerHTML = `<h3>⚠ Date not set (${und.length})</h3>` +
+      `<p>These can't sit on a day yet, so they're ambiguous. Tap one to give it a date or a date range.</p>` +
+      `<div class="chips">${und.map(d => chipHTML(d, true)).join('')}</div>`;
+  }
+}
+
+function renderDetail() {
+  const items = state.deadlines.filter(d => { const sp = span(d); return sp && sp[0] <= sel && sel <= sp[1]; })
+    .sort((a, b) => (a.done - b.done) || ((b.importance || 0) - (a.importance || 0)));
+  $('#detail').innerHTML =
+    `<h3><span>${esc(fmt(sel, { weekday: 'long', day: 'numeric', month: 'long' }))}</span>` +
+    `<button class="ghost" data-addday="${sel}">＋ Add on this day</button></h3>` +
+    (items.length ? `<ul class="rows">${items.map(d =>
+      `<li class="drow lv${d.importance || 0} ${d.done ? 'done' : ''}">` +
+      `<input type="checkbox" class="chk" data-done="${d.id}" ${d.done ? 'checked' : ''} aria-label="Mark done">` +
+      `<div class="dmain"><div class="ptitle">${esc(d.title)}</div><div class="pmeta">${metaHTML(d)}</div></div>` +
+      `<button class="ghost" data-edit="${d.id}">Edit</button></li>`).join('')}</ul>`
+      : `<p class="muted small" style="margin:6px 0 0">Nothing due on this day.</p>`);
+}
+
+function renderPriority() {
+  const order = currentOrder();
+  $('#resetOrder').disabled = !state.manualOrder;
+  $('#customBadge').hidden = !state.manualOrder;
+  const list = $('#priList');
+  if (!order.length) {
+    list.innerHTML = `<li class="empty">Nothing to rank yet. Add a deadline and it'll show up here, sorted for you.</li>`;
+  } else {
+    list.innerHTML = order.map((d, i) => {
+      const [bl, bc] = band(score(d));
+      return `<li class="prow lv${d.importance || 0}" draggable="true" data-id="${d.id}">` +
+        `<span class="handle" title="Drag to reorder" aria-hidden="true">⋮⋮</span>` +
+        `<span class="rank">${i + 1}</span>` +
+        `<input type="checkbox" class="chk" data-done="${d.id}" aria-label="Mark ${esc(d.title)} done">` +
+        `<div class="pmain"><div class="ptitle">${esc(d.title)} <span class="badge band ${bc}">${bl}</span></div>` +
+        `<div class="pmeta">${metaHTML(d)}</div></div>` +
+        `<div class="pbtns"><button data-up="${d.id}" aria-label="Move up" ${i === 0 ? 'disabled' : ''}>↑</button>` +
+        `<button data-down="${d.id}" aria-label="Move down" ${i === order.length - 1 ? 'disabled' : ''}>↓</button>` +
+        `<button data-edit="${d.id}" aria-label="Edit" title="Edit">✎</button></div></li>`;
+    }).join('');
+  }
+  const done = state.deadlines.filter(d => d.done);
+  $('#completedBox').hidden = !done.length;
+  $('#completedSum').textContent = `Completed (${done.length})`;
+  $('#doneList').innerHTML = done.map(d =>
+    `<li class="prow done lv${d.importance || 0}"><input type="checkbox" class="chk" data-done="${d.id}" checked aria-label="Mark not done">` +
+    `<div class="pmain"><div class="ptitle">${esc(d.title)}</div><div class="pmeta">${metaHTML(d, true)}</div></div>` +
+    `<div class="pbtns"><button data-edit="${d.id}" aria-label="Edit">✎</button></div></li>`).join('');
+}
+
+function render() {
+  applyLabels();
+  renderStats();
+  renderSubjects();
+  $('#welcome').hidden = state.deadlines.length > 0;
+  const cv = state.view === 'calendar';
+  $('#calView').hidden = !cv; $('#priView').hidden = cv;
+  $('#tabCal').setAttribute('aria-selected', String(cv));
+  $('#tabPri').setAttribute('aria-selected', String(!cv));
+  renderCalendar(); renderDetail(); renderPriority();
+}
+
+/* ---------- dialog ---------- */
+const dlg = $('#dlg'), form = $('#form');
+function setWhen(mode) {
+  form.elements.when.value = mode;
+  $('#whenSingle').hidden = mode !== 'single';
+  $('#whenRange').hidden = mode !== 'range';
+  $('#whenHint').textContent = {
+    single: 'Add a time too if it matters (e.g. an exam at 10:00).',
+    range: "Only know it'll land somewhere in a window, like “sometime 10–14 Nov”? Planwise plans for it landing early.",
+    none: "No problem. It'll sit in the “Date not set” strip with a warning until you pin it down."
+  }[mode];
+}
+function openDlg(id, preset) {
+  editingId = id || null;
+  const d = id ? state.deadlines.find(x => x.id === id) : null;
+  const f = form.elements;
+  $('#dlgTitle').textContent = d ? 'Edit deadline' : 'Add a deadline';
+  $('#delBtn').hidden = !d;
+  $('#formErr').textContent = '';
+  f.subject.innerHTML = `<option value="">${esc(L.noSubject)}</option>` + state.subjects.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+  f.title.value = d ? d.title : '';
+  f.subject.value = d ? (d.subjectId || '') : (state.subjects.some(s => s.id === lastSubject) ? lastSubject : (state.subjects[0] ? state.subjects[0].id : ''));
+  setWhen(d ? d.dateMode : 'single');
+  f.date.value = d && d.dateMode === 'single' ? d.date : (preset || '');
+  f.time.value = d && d.dateMode === 'single' ? (d.time || '') : '';
+  f.start.value = d && d.dateMode === 'range' ? d.date : '';
+  f.end.value = d && d.dateMode === 'range' ? d.endDate : '';
+  f.imp.value = String(d ? (d.importance || 0) : 0);
+  f.weight.value = d && d.weight != null ? d.weight : '';
+  f.notes.value = d ? (d.notes || '') : '';
+  dlg.showModal();
+  f.title.focus();
+}
+form.addEventListener('change', e => { if (e.target.name === 'when') setWhen(e.target.value); });
+form.addEventListener('submit', e => {
+  e.preventDefault();
+  const f = form.elements;
+  const err = m => { $('#formErr').textContent = m; };
+  const title = f.title.value.trim();
+  if (!title) { err('Give it a name first.'); f.title.focus(); return; }
+  const mode = f.when.value;
+  let date = '', endDate = '', time = '';
+  if (mode === 'single') {
+    date = f.date.value; time = f.time.value;
+    if (!date) { err('Pick a date, or choose “No date yet”.'); return; }
+  } else if (mode === 'range') {
+    date = f.start.value; endDate = f.end.value;
+    if (!date || !endDate) { err('Pick both a start and an end date.'); return; }
+    if (endDate < date) { err('The end date is before the start date.'); return; }
+  }
+  const wRaw = f.weight.value.trim();
+  let weight = null;
+  if (wRaw !== '') {
+    weight = parseFloat(wRaw);
+    if (isNaN(weight) || weight < 0 || weight > 100) { err('Weight should be a number from 0 to 100.'); return; }
+  }
+  const data = {
+    title, subjectId: f.subject.value || null, dateMode: mode, date, endDate, time,
+    importance: parseInt(f.imp.value, 10) || 0, weight, notes: f.notes.value.trim()
+  };
+  lastSubject = data.subjectId;
+  if (editingId) {
+    const d = state.deadlines.find(x => x.id === editingId);
+    Object.assign(d, data);
+  } else {
+    state.deadlines.push({ id: uid(), done: false, ...data });
+  }
+  if (data.date) { const dt = pd(data.date); cal = { y: dt.getFullYear(), m: dt.getMonth() }; sel = data.date; }
+  save(); dlg.close(); render();
+});
+$('#cancelBtn').addEventListener('click', () => dlg.close());
+dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
+$('#delBtn').addEventListener('click', () => {
+  if (!editingId || !confirm('Delete this deadline?')) return;
+  state.deadlines = state.deadlines.filter(d => d.id !== editingId);
+  if (state.manualOrder) state.manualOrder = state.manualOrder.filter(id => id !== editingId);
+  save(); dlg.close(); render();
+});
+
+/* ---------- events ---------- */
+$('#addBtn').addEventListener('click', () => openDlg(null, state.view === 'calendar' ? '' : ''));
+$$('[data-mode]').forEach(b => b.addEventListener('click', () => { state.mode = b.dataset.mode; save(); render(); }));
+$$('[data-view]').forEach(b => b.addEventListener('click', () => { state.view = b.dataset.view; save(); render(); }));
+
+$('#subjForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const inp = $('#subjInput'); const name = inp.value.trim();
+  if (!name) return;
+  if (state.subjects.some(s => s.name.toLowerCase() === name.toLowerCase())) { inp.select(); return; }
+  state.subjects.push({ id: uid(), name, color: PALETTE[state.subjects.length % PALETTE.length] });
+  inp.value = ''; save(); render(); inp.focus();
+});
+$('#subjectList').addEventListener('click', e => {
+  const ren = e.target.closest('[data-ren]'), del = e.target.closest('[data-del]');
+  if (ren) {
+    const s = state.subjects.find(x => x.id === ren.dataset.ren);
+    const n = prompt('Rename:', s.name);
+    if (n && n.trim()) { s.name = n.trim().slice(0, 40); save(); render(); }
+  } else if (del) {
+    const s = state.subjects.find(x => x.id === del.dataset.del);
+    const n = state.deadlines.filter(d => d.subjectId === s.id).length;
+    if (!confirm(`Remove “${s.name}”?${n ? ` Its ${n} deadline${n > 1 ? 's' : ''} will stay, just without a ${L.Unit.toLowerCase()}.` : ''}`)) return;
+    state.subjects = state.subjects.filter(x => x.id !== s.id);
+    state.deadlines.forEach(d => { if (d.subjectId === s.id) d.subjectId = null; });
+    save(); render();
+  }
+});
+
+// calendar
+$('#prevM').addEventListener('click', () => { const d = new Date(cal.y, cal.m - 1, 1); cal = { y: d.getFullYear(), m: d.getMonth() }; renderCalendar(); });
+$('#nextM').addEventListener('click', () => { const d = new Date(cal.y, cal.m + 1, 1); cal = { y: d.getFullYear(), m: d.getMonth() }; renderCalendar(); });
+$('#todayM').addEventListener('click', () => { const t = today0(); cal = { y: t.getFullYear(), m: t.getMonth() }; sel = ymd(t); renderCalendar(); renderDetail(); });
+$('#grid').addEventListener('click', e => {
+  const c = e.target.closest('[data-day]'); if (!c) return;
+  sel = c.dataset.day;
+  const dt = pd(sel);
+  if (dt.getMonth() !== cal.m) cal = { y: dt.getFullYear(), m: dt.getMonth() };
+  renderCalendar(); renderDetail();
+});
+
+// shared delegated actions
+function toggleDone(id, v) {
+  const d = state.deadlines.find(x => x.id === id); if (!d) return;
+  d.done = v; save(); render();
+}
+document.addEventListener('change', e => { const c = e.target.closest('[data-done]'); if (c) toggleDone(c.dataset.done, c.checked); });
+document.addEventListener('click', e => {
+  const ed = e.target.closest('[data-edit]'); if (ed) { openDlg(ed.dataset.edit); return; }
+  const ad = e.target.closest('[data-addday]'); if (ad) { openDlg(null, ad.dataset.addday); return; }
+  const up = e.target.closest('[data-up]'); if (up) { move(up.dataset.up, -1); return; }
+  const dn = e.target.closest('[data-down]'); if (dn) { move(dn.dataset.down, 1); }
+});
+
+// priorities: reorder + reset
+function move(id, delta) {
+  const ord = currentOrder().map(x => x.id);
+  const i = ord.indexOf(id), j = i + delta;
+  if (i < 0 || j < 0 || j >= ord.length) return;
+  [ord[i], ord[j]] = [ord[j], ord[i]];
+  state.manualOrder = ord; save(); render();
+}
+$('#resetOrder').addEventListener('click', () => { state.manualOrder = null; save(); render(); });
+let dragId = null;
+const plist = $('#priList');
+plist.addEventListener('dragstart', e => {
+  const li = e.target.closest('.prow'); if (!li) return;
+  dragId = li.dataset.id; li.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragId);
+});
+plist.addEventListener('dragover', e => {
+  if (!dragId) return; e.preventDefault();
+  $$('.prow', plist).forEach(x => x.classList.remove('over'));
+  const li = e.target.closest('.prow'); if (li && li.dataset.id !== dragId) li.classList.add('over');
+});
+plist.addEventListener('drop', e => {
+  e.preventDefault();
+  const li = e.target.closest('.prow');
+  if (!li || !dragId) { dragId = null; render(); return; }
+  const ord = currentOrder().map(x => x.id);
+  const from = ord.indexOf(dragId), to = ord.indexOf(li.dataset.id);
+  dragId = null;
+  if (from < 0 || to < 0 || from === to) { render(); return; }
+  ord.splice(to, 0, ord.splice(from, 1)[0]);
+  state.manualOrder = ord; save(); render();
+});
+plist.addEventListener('dragend', () => { dragId = null; $$('.prow', plist).forEach(x => x.classList.remove('over', 'dragging')); });
+
+/* ---------- sample data, backup ---------- */
+function loadSample() {
+  const t0 = today0();
+  const add = n => { const d = new Date(t0); d.setDate(d.getDate() + n); return ymd(d); };
+  const names = state.mode === 'student' ? ['Mathematics', 'Physics', 'Literature'] : ['Website relaunch', 'Hiring', 'Finance'];
+  const ids = names.map(n => {
+    let s = state.subjects.find(x => x.name.toLowerCase() === n.toLowerCase());
+    if (!s) { s = { id: uid(), name: n, color: PALETTE[state.subjects.length % PALETTE.length] }; state.subjects.push(s); }
+    return s.id;
+  });
+  const mk = (title, si, mode, date, time, end, imp, weight) => state.deadlines.push({
+    id: uid(), title, subjectId: ids[si], dateMode: mode, date: date || '', endDate: end || '', time: time || '',
+    importance: imp, weight: weight == null ? null : weight, notes: '', done: false });
+  if (state.mode === 'student') {
+    mk('Assignment 3', 0, 'single', add(3), '17:00', '', 3, 10);
+    mk('Mid-sem exam', 1, 'single', add(9), '10:00', '', 4, 30);
+    mk('Essay draft', 2, 'range', add(5), '', add(8), 2, 15);
+    mk('Surprise quiz prep', 0, 'single', add(1), '', '', 1, 5);
+    mk('Lab report', 1, 'none', '', '', '', 0, null);
+    mk('Reading list', 2, 'none', '', '', '', 2, null);
+    mk('Final project', 0, 'single', add(25), '', '', 4, 40);
+  } else {
+    mk('Client proposal draft', 0, 'single', add(2), '', '', 4, null);
+    mk('QA sign-off', 0, 'single', add(4), '15:00', '', 4, 25);
+    mk('Interview round 2', 1, 'range', add(6), '', add(9), 3, null);
+    mk('Offsite planning', 1, 'none', '', '', '', 0, null);
+    mk('Expense reports', 2, 'single', add(1), '', '', 1, null);
+    mk('Q4 budget review', 2, 'single', add(12), '', '', 3, 20);
+  }
+  save(); render();
+}
+$('#sampleBtn').addEventListener('click', loadSample);
+
+$('#exportBtn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = `planwise-backup-${ymd(new Date())}.json`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+$('#importBtn').addEventListener('click', () => $('#importFile').click());
+$('#importFile').addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const s = JSON.parse(r.result);
+      if (!Array.isArray(s.subjects) || !Array.isArray(s.deadlines)) throw new Error('bad');
+      if (!confirm('This replaces everything currently in Planwise with the backup. Continue?')) return;
+      state = { ...JSON.parse(JSON.stringify(DEFAULT)), ...s };
+      save(); render();
+    } catch (err) { alert("That doesn't look like a Planwise backup file."); }
+  };
+  r.readAsText(file); e.target.value = '';
+});
+$('#clearBtn').addEventListener('click', () => {
+  if (!confirm('Delete ALL subjects and deadlines from this browser? This cannot be undone.')) return;
+  const mode = state.mode;
+  state = JSON.parse(JSON.stringify(DEFAULT)); state.mode = mode;
+  save(); render();
+});
+
+document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
+
+/* ---------- go ---------- */
+if (!storageOK) $('#storageWarn').hidden = false;
+render();
+})();
+</script>
+</body>
+</html>
